@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>preview</LangVersion>
+	</PropertyGroup>
+
+
+
+	<PropertyGroup>
+		<NeonWhiteDirectory>C:\Program Files (x86)\Steam\steamapps\common\Neon White</NeonWhiteDirectory>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<ManagedDirectory>$(NeonWhiteDirectory)\Neon White_Data\Managed</ManagedDirectory>
+		<ModsDirectory>$(NeonWhiteDirectory)\Mods</ModsDirectory>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="$(ModsDirectory)\UniverseLib.Mono.dll"/>
+		<Reference Include="$(ModsDirectory)\NeonLite.dll"/>
+		<Reference Include="$(ModsDirectory)\AntiCheat.dll"/>
+		<Reference Include="$(NeonWhiteDirectory)\MelonLoader\net35\0Harmony.dll"/>
+		<Reference Include="$(NeonWhiteDirectory)\MelonLoader\net35\MelonLoader.dll"/>
+		<Reference Include="$(ManagedDirectory)\Assembly-CSharp.dll"/>
+		<Reference Include="$(ManagedDirectory)\Assembly-CSharp-firstpass.dll"/>
+		<Reference Include="$(ManagedDirectory)\Unity.TextMeshPro.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.CoreModule.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.IMGUIModule.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.PhysicsModule.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.TextRenderingModule.dll"/>
+		<Reference Include="$(ManagedDirectory)\UnityEngine.AssetBundleModule.dll"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Resources\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Resources\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="copy $(TargetDir)$(TargetName).* &quot;C:\Program Files (x86)\Steam\steamapps\common\Neon White\Mods&quot;" />
+	</Target>
+
+
+</Project>
