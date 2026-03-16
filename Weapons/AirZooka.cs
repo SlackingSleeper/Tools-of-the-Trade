@@ -127,52 +127,60 @@ namespace ToolsOfTheTrade.Weapons
             }
             [HarmonyPostfix]
             [HarmonyPatch(nameof(FirstPersonDrifter.UpdateVelocity))]
-            static void DoDashOrDrain(ref Vector3 currentVelocity, ref Vector3 ___velocity)
+            static void DoDashOrDrain(ref Vector3 currentVelocity, ref Vector3 ___velocity, ref FirstPersonDrifter __instance)
             {
+                DebugLog();
                 if (shouldDrainSpeed)
                 {
-                    shouldDrainSpeed = false;
-                    Log($"drainSpeed: Before: {currentVelocity}");
-                    Vector3 flatCurrent = currentVelocity;
-                    flatCurrent.y = 0;
-                    Vector3 forwardDirection = RM.mechController
-                                                 .playerCamera
-                                                 .PlayerCam
-                                                 .transform
-                                                 .parent
-                                                 .forward
-                                                 .normalized;
-                    float dot = Vector3.Dot(forwardDirection, flatCurrent);
-                    if (dot < 10 || flatCurrent.magnitude < 18.75) { return; }
-                    float flatRatio = /*18.75f / flatCurrent.magnitude*/ 0;
-                    float dotRatiod = dot * flatRatio;
-                    gatheredMomentum += dot - dotRatiod;
-
-                    Vector3 clampedFlat = /*Vector3.ClampMagnitude(flatCurrent, 18.75f)*/ default;
-                    currentVelocity.x = clampedFlat.x;
-                    currentVelocity.z = clampedFlat.z;
-                    Log($"drainSpeed: Oh lord they drainin: {gatheredMomentum}");
-                    Log($"drainSpeed: After: {currentVelocity}");
+                shouldDrainSpeed = false;
+                    DrainSpeed(ref currentVelocity, ref __instance);
                 }
                 else if (shouldStartDash)
                 {
-                    Log($"pushPullBoostActive: Before: {currentVelocity}");
-
-                    Log($"pushPullBoostActive: Oh lord they flyin: {gatheredMomentum}");
-                    shouldStartDash = false;
-                    Vector3 forwardDirection = RM.mechController
-                                                 .playerCamera
-                                                 .PlayerCam
-                                                 .transform
-                                                 .parent
-                                                 .forward
-                                                 .normalized;
-                    currentVelocity += momentumModifier * gatheredMomentum * forwardDirection;
-                    ___velocity += momentumModifier * gatheredMomentum * forwardDirection;
-                    gatheredMomentum = 0;
-                    reducedDragTimer = reducedDragTimerMax;
-                    Log($"pushPullBoostActive: After: {currentVelocity}");
+                shouldStartDash = false;
+                    StartDash(ref currentVelocity, ref ___velocity);
                 }
+            }
+            static void DrainSpeed(ref Vector3 currentVelocity, ref FirstPersonDrifter __instance)
+            {
+                DebugLog($"Before: {currentVelocity}speed {gatheredMomentum}momentum");
+                Vector3 flatCurrent = currentVelocity;
+                flatCurrent.y = 0;
+                Vector3 forwardDirection = RM.mechController
+                                             .playerCamera
+                                             .PlayerCam
+                                             .transform
+                                             .parent
+                                             .forward
+                                             .normalized;
+                float dot = Vector3.Dot(forwardDirection, flatCurrent);
+                if (dot < 10 || flatCurrent.magnitude < 18.75) { return; }
+                float flatRatio = /*18.75f / flatCurrent.magnitude*/ 0;
+                float dotRatiod = dot * flatRatio;
+                gatheredMomentum += dot - dotRatiod;
+                __instance.MoveStun();
+                __instance.moveStunRecoverySpeed = 0.5f;
+                Vector3 clampedFlat = /*Vector3.ClampMagnitude(flatCurrent, 18.75f)*/ default;
+                currentVelocity.x = clampedFlat.x;
+                currentVelocity.z = clampedFlat.z;
+                DebugLog($"After: {currentVelocity}speed {gatheredMomentum}momentum");
+            }
+            static void StartDash(ref Vector3 currentVelocity, ref Vector3 ___velocity)
+            {
+                DebugLog($"Before: {currentVelocity}speed {gatheredMomentum}momentum");
+
+                Vector3 forwardDirection = RM.mechController
+                                             .playerCamera
+                                             .PlayerCam
+                                             .transform
+                                             .parent
+                                             .forward
+                                             .normalized;
+                currentVelocity += momentumModifier * gatheredMomentum * forwardDirection;
+                ___velocity += momentumModifier * gatheredMomentum * forwardDirection;
+                gatheredMomentum = 0;
+                reducedDragTimer = reducedDragTimerMax;
+                DebugLog($"After: {currentVelocity}speed {gatheredMomentum}momentum");
             }
         }
     }
