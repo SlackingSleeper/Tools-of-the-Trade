@@ -7,9 +7,16 @@ namespace ToolsOfTheTrade.Weapons
     [HarmonyPatch]
     internal class AirZooka : MelonMod
     {
-        private static void Log(object message)
+        private static void Log(object message, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
         {
-            MelonLogger.Msg(message);
+            MelonLogger.Msg($"[AirZooka][{functionName}]: {message}");
+        }
+        private static void DebugLog(string message = "", [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        {
+            if (Settings.AirZookaDebug.Value)
+            {
+                Log(message, functionName);
+            }
         }
         static float gatheredMomentum = 0;
 
@@ -36,17 +43,11 @@ namespace ToolsOfTheTrade.Weapons
             [HarmonyPriority(HarmonyLib.Priority.First)]
             static bool StopProjectile(string path, ref ProjectileBase __result)
             {
+                DebugLog();
                 if (path != "Projectiles/ProjectileRifle")
                 {
-                    Log(path);
                     return true;
                 }
-                Log($"StopProjectile: forward ->{RM.mechController
-                                                   .playerCamera
-                                                   .PlayerCam
-                                                   .transform
-                                                   .parent
-                                                   .forward}");
                 __result = new ProjectileBase();
                 return false;
             }
@@ -58,12 +59,11 @@ namespace ToolsOfTheTrade.Weapons
             [HarmonyPatch(nameof(PlayerCard.OnFire))]
             static bool TriggerDrain(PlayerCardData ___data, ref float ___overheatAmount)
             {
+                DebugLog();
                 if (___data.cardID != "RIFLE")
                 {
-                    Log(___data.cardID);
                     return true;
                 }
-                Log($"GatherMomentum: Oh lord they drainin: {gatheredMomentum}");
                 shouldDrainSpeed = true;
                 return false;
             }
@@ -80,6 +80,7 @@ namespace ToolsOfTheTrade.Weapons
                                          FirstPersonDrifter __instance,
                                          bool isGodspeed)
             {
+                DebugLog();
                 if (isGodspeed == false) { return true; }
                 shouldStartDash = true;
 
@@ -104,6 +105,7 @@ namespace ToolsOfTheTrade.Weapons
                                    ref Vector3 ___groundDrag,
                                    ref Vector3 ___airDrag)
             {
+                DebugLog();
                 if (reducedDragTimer == reducedDragTimerMax)
                 {
                     groundDragStore = ___groundDrag;
@@ -115,8 +117,6 @@ namespace ToolsOfTheTrade.Weapons
                 if (reducedDragActive)
                 {
                     reducedDragTimer -= deltaTime;
-                    Log($"{deltaTime}");
-                    Log($"reducedDragTimer: {reducedDragTimer}");
                     if (reducedDragTimer <= 0)
                     {
                         ___groundDrag = groundDragStore;
