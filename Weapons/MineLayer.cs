@@ -6,11 +6,10 @@ namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
     //[HarmonyPatchCategory("MineLayer")]
-    internal class MineLayer : MelonMod
+    internal class MineLayer : WeaponTool<MineLayer>
     {
-        private static void Log(object message)
+        class Settings : ModSettings
         {
-            Melon<MineLayer>.Logger.Msg(message);
         }
         internal class RocketMine : ProjectileBase
         {
@@ -53,18 +52,18 @@ namespace ToolsOfTheTrade.Weapons
             }
             public override void OnProjectileHit(ProjectileBase.ProjectileHit hit)
             {
-                Log("RocketMine OnProjectileHit");
+                DebugLog("RocketMine OnProjectileHit");
                 //this._collisionLayerMask = LayerMask.GetMask(new string[] { "Player" });
                 base.OnProjectileHit(hit);
             }
             public override bool OnCollide(ProjectileBase.ProjectileHit hit, bool testDamageable)
             {
-                Log("RocketMine OnCollide");
+                DebugLog("RocketMine OnCollide");
                 return base.OnCollide(hit, testDamageable);
             }
             public override void OnExplode(ProjectileBase.ProjectileHit hit)
             {
-                Log($"OnExplode position {this.transform.position} vs {hit}");
+                DebugLog($"OnExplode position {this.transform.position} vs {hit}");
                 base.OnExplode(hit);
                 if (this.IsProjectileAlive)
                 {
@@ -79,36 +78,35 @@ namespace ToolsOfTheTrade.Weapons
             }
             public override void OnDespawn()
             {
-                Log("OnDespawn => isAlive == false");
+                DebugLog("OnDespawn => isAlive == false");
                 base.OnDespawn();
             }
 
         }
         static private UnityEngine.AssetBundle asset;
         static private UnityEngine.GameObject minePrefab;
-        public override void OnPreferencesSaved() => OnPreferencesLoaded();
-        public override void OnPreferencesLoaded()
+        public override void OnPreferencesSaved()
         {
-            if (Settings.MineLayer.Value == true)
+            if (Settings.Active.Value == true)
             {
-                Log("Awoke");
+                DebugLog("Awoke");
                 if (asset == null)
                 {
                     asset = AssetBundle.LoadFromMemory(Resources.Resources.rocketmine);
                     if (asset == null)
                     {
-                        Log("failed to LoadFromMemory");
+                        DebugLog("failed to LoadFromMemory");
                         return;
                     }
                     minePrefab = asset.LoadAsset<GameObject>("RocketMine");
                     if (minePrefab == null)
                     {
-                        Log("failed to LoadAsset");
+                        DebugLog("failed to LoadAsset");
                         return;
                     }
                     else
                     {
-                        Log("Mine to LoadAsset");
+                        DebugLog("Mine to LoadAsset");
                     }
                 }
             }
