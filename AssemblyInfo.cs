@@ -17,4 +17,6 @@ using System.Runtime.InteropServices;
 
 [assembly: Guid("806a227a-89dd-4169-af6c-0de7628f8e99")]
 [assembly: MelonInfo(typeof(ToolsOfTheTrade.Main), "ToolsOfTheTrade", "0.1.0", "Slacking")]
+[assembly: MelonGame("Little Flag Software, LLC", "Neon White")]
+[assembly: HarmonyDontPatchAll]
 
