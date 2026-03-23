@@ -1,16 +1,16 @@
 ﻿using HarmonyLib;
 using MelonLoader;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+using static SoftNormalsToVertexColor;
 
 namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
-    internal class SwapBoof : MelonMod
+    internal class SwapBoof : WeaponTool<SwapBoof>
     {
-        private static void Log(object message)
-        {
-            Melon<AirZooka>.Logger.Msg(message);
-        }
+
         //TODO: change meatball,shocker behaviour
         [HarmonyPatch(typeof(FirstPersonDrifter))]
         class FirstPersonDrifter_
@@ -67,7 +67,7 @@ namespace ToolsOfTheTrade.Weapons
                                    ref Vector3 ___telefragEndPosition,
                                    ref BaseDamageable ___telefragTarget,
                                    ref Vector3 ___moveDirection,
-                                   ref FirstPersonDrifter __instance )
+                                   ref FirstPersonDrifter __instance)
             {
                 {
                     //bool flag = false;
@@ -108,8 +108,9 @@ namespace ToolsOfTheTrade.Weapons
                     //}
                     AudioController.Play(audioID);
                     ___myTransform.position = ___telefragEndPosition;
-                    /*new*/___telefragTarget.transform.position = ___telefragStartPosition;
-                    Log("new fragger");
+                    /*new*/
+                    ___telefragTarget.transform.position = ___telefragStartPosition;
+                    DebugLog("new fragger");
 
                     __instance.ForceZeroVelocity();
                     ___moveDirection = Vector3.zero;

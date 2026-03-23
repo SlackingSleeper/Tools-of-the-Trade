@@ -5,18 +5,21 @@ using UnityEngine;
 namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
-    internal class AirZooka : MelonMod
+    internal class AirZooka : WeaponTool<AirZooka>
     {
-        private static void Log(object message, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        class Settings : ModSettings
         {
-            MelonLogger.Msg($"[AirZooka][{functionName}]: {message}");
+            public static MelonPreferences_Entry<float> AirZookaMomentumModifier;
+            public static MelonPreferences_Entry<float> AirZookaDragFactor;
         }
-        private static void DebugLog(string message = "", [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        public override void RegisterSettings()
         {
-            if (Settings.AirZookaDebug.Value)
-            {
-                Log(message, functionName);
-            }
+            var Selection = MelonPreferences.CreateCategory(ToolsOfTheTrade.Settings.mainCategoryName);
+
+            Settings.AirZookaMomentumModifier = Selection.CreateEntry("AirZookaMomentumModifier", 1f);
+            Settings.AirZookaDragFactor = Selection.CreateEntry("AirZookaDragFactor", 2f);
+
+            base.RegisterSettings();
         }
         static float gatheredMomentum = 0;
 
@@ -30,7 +33,7 @@ namespace ToolsOfTheTrade.Weapons
         static bool reducedDragActive = false;
 
         private const float reducedDragTimerMax = 1f;
-        private const float momentumModifier = 2;
+        //private const float momentumModifier = 1;
 
         [HarmonyPatch(typeof(ProjectileBase))]
         internal class PatchProjectileBase
@@ -43,11 +46,11 @@ namespace ToolsOfTheTrade.Weapons
             [HarmonyPriority(HarmonyLib.Priority.First)]
             static bool StopProjectile(string path, ref ProjectileBase __result)
             {
-                DebugLog();
                 if (path != "Projectiles/ProjectileRifle")
                 {
                     return true;
                 }
+                DebugLog();
                 __result = new ProjectileBase();
                 return false;
             }
@@ -59,11 +62,11 @@ namespace ToolsOfTheTrade.Weapons
             [HarmonyPatch(nameof(PlayerCard.OnFire))]
             static bool TriggerDrain(PlayerCardData ___data, ref float ___overheatAmount)
             {
-                DebugLog();
                 if (___data.cardID != "RIFLE")
                 {
                     return true;
                 }
+                DebugLog();
                 shouldDrainSpeed = true;
                 return false;
             }
@@ -105,13 +108,13 @@ namespace ToolsOfTheTrade.Weapons
                                    ref Vector3 ___groundDrag,
                                    ref Vector3 ___airDrag)
             {
-                DebugLog();
                 if (reducedDragTimer == reducedDragTimerMax)
                 {
+                    DebugLog("drag start");
                     groundDragStore = ___groundDrag;
                     airDragStore = ___airDrag;
-                    ___groundDrag = ___groundDrag / 3;
-                    ___airDrag = ___airDrag / 3;
+                    ___groundDrag = ___groundDrag / Settings.AirZookaDragFactor.Value;
+                    ___airDrag = ___airDrag / Settings.AirZookaDragFactor.Value;
                     reducedDragActive = true;
                 }
                 if (reducedDragActive)
@@ -119,6 +122,7 @@ namespace ToolsOfTheTrade.Weapons
                     reducedDragTimer -= deltaTime;
                     if (reducedDragTimer <= 0)
                     {
+                        DebugLog("drag end");
                         ___groundDrag = groundDragStore;
                         ___airDrag = airDragStore;
                         reducedDragActive = false;
@@ -129,15 +133,15 @@ namespace ToolsOfTheTrade.Weapons
             [HarmonyPatch(nameof(FirstPersonDrifter.UpdateVelocity))]
             static void DoDashOrDrain(ref Vector3 currentVelocity, ref Vector3 ___velocity, ref FirstPersonDrifter __instance)
             {
-                DebugLog();
+                //DebugLog();
                 if (shouldDrainSpeed)
                 {
-                shouldDrainSpeed = false;
+                    shouldDrainSpeed = false;
                     DrainSpeed(ref currentVelocity, ref __instance);
                 }
                 else if (shouldStartDash)
                 {
-                shouldStartDash = false;
+                    shouldStartDash = false;
                     StartDash(ref currentVelocity, ref ___velocity);
                 }
             }
@@ -176,8 +180,8 @@ namespace ToolsOfTheTrade.Weapons
                                              .parent
                                              .forward
                                              .normalized;
-                currentVelocity += momentumModifier * gatheredMomentum * forwardDirection;
-                ___velocity += momentumModifier * gatheredMomentum * forwardDirection;
+                currentVelocity += Settings.AirZookaMomentumModifier.Value * gatheredMomentum * forwardDirection;
+                ___velocity += Settings.AirZookaMomentumModifier.Value * gatheredMomentum * forwardDirection;
                 gatheredMomentum = 0;
                 reducedDragTimer = reducedDragTimerMax;
                 DebugLog($"After: {currentVelocity}speed {gatheredMomentum}momentum");
