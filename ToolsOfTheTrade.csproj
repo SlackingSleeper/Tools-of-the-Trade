@@ -50,7 +50,7 @@
 	</ItemGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="copy $(TargetDir)$(TargetName).* &quot;C:\Program Files (x86)\Steam\steamapps\common\Neon White\Mods&quot;" />
+		<Exec Command="copy $(TargetDir)$(TargetName).* &quot;$(ModsDirectory)&quot;" />
 	</Target>
 
 
