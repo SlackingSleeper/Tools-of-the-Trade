@@ -48,15 +48,11 @@ namespace ToolsOfTheTrade
                 return methodList;
             }
         }
-        private static void Log(object message, string functionName)
-        {
-            Melon<Main>.Logger.Msg($"[{typeof(DerivedType).Name}][{functionName}]: {message}");
-        }
-        protected static void DebugLog(string message = "", [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        protected static void DebugLog(object message = null, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
         {
             if (ModSettings.Debug.Value)
             {
-                Log(message, functionName);
+            Melon<Main>.Logger.Msg($"[{typeof(DerivedType).Name}][{functionName}]: {message}");
             }
         }
         //TODO:  add check for if the patch is in the state that is promised
@@ -104,7 +100,16 @@ namespace ToolsOfTheTrade
                     DebugLog($"{type.Name} patchList length: {patchList.Length}");
                     foreach (var (_, patch) in patchList)
                     {
-                        var target = type.GetMethod(patch.methodName);
+                        DebugLog($"{type.Name}::{patch.methodName} => {patch.method.Name}");
+                        MethodInfo target;
+                        if (patch.argumentTypes == default)
+                        {
+                            target = type.GetMethod(patch.methodName, AccessTools.allDeclared);
+                        }
+                        else
+                        {
+                            target = type.GetMethod(patch.methodName, AccessTools.allDeclared, null, patch.argumentTypes, default);
+                        }
                         Main.harmony.Unpatch(target, patch.method);
                     }
                 }
