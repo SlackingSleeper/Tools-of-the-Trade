@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using MelonLoader;
+using System.Configuration;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnityEngine;
@@ -10,7 +11,8 @@ namespace ToolsOfTheTrade.Weapons
     [HarmonyPatch]
     internal class SwapBoof : WeaponTool<SwapBoof>
     {
-
+        //static float lastBoof = 0f;
+        //static BaseDamageable lastTarget = default;
         //TODO: change meatball,shocker behaviour
         [HarmonyPatch(typeof(FirstPersonDrifter))]
         class FirstPersonDrifter_
@@ -70,74 +72,83 @@ namespace ToolsOfTheTrade.Weapons
                                    ref FirstPersonDrifter __instance)
             {
                 {
-                    //bool flag = false;
-                    //if (___telefragTarget.GetDamageableType() == BaseDamageable.DamageableType.Enemy
-                    // && ___telefragTarget.GetEnemyType() == Enemy.Type.mimic
-                    // && EnemyMimic.mimicType == EnemyMimic.MimicType.Attack)
-                    //{
-                    //    flag = true;
-                    //}
                     ___telefragging = false;
-                    //if (!flag)
-                    //{
-                    //    ___telefragTarget.SetDieSFX("");
-                    //}
-                    string audioID = "TELEFRAG_END";
-                    //Vector3 normalized = (___telefragEndPosition - ___telefragStartPosition).normalized;
-                    //float d = 1f;
-                    //bool flag2 = true;
-                    //int damage = __instance.telefragDamage;
-                    //float num = 0f;
-                    //if (___telefragTarget.GetDamageableType() == BaseDamageable.DamageableType.CrystalExplosive || ___telefragTarget.GetEnemyType() == Enemy.Type.bossBasic)
-                    //{
-                    //    Vector3 a = ___telefragStartPosition;
-                    //    a.y = ___telefragEndPosition.y;
-                    //    normalized = (a - ___telefragEndPosition).normalized;
-                    //    normalized.y = 0.6f;
-                    //    d = 1.5f;
-                    //    flag2 = false;
-                    //    num = 1f;
-                    //    if (___telefragTarget.GetEnemyType() == Enemy.Type.bossBasic)
-                    //    {
-                    //        damage = 30;
-                    //    }
-                    //    else
-                    //    {
-                    //        damage = ___telefragTarget.maxHealth;
-                    //    }
-                    //}
-                    AudioController.Play(audioID);
+                    if (___telefragTarget is BookOfLife)
+                    {
+                        ___telefragTarget.OnTelefragEnd();
+                        AudioController.Play("TELEFRAG_END");
+                        ___myTransform.position = ___telefragEndPosition;
+                        return false;
+                    }
+                    AudioController.Play("TELEFRAG_END");
+
                     ___myTransform.position = ___telefragEndPosition;
-                    /*new*/
                     ___telefragTarget.transform.position = ___telefragStartPosition;
+                    if (___telefragTarget is EnemyShocker)
+                    {
+                        ref var wpnSprng = ref (___telefragTarget as EnemyShocker)._shockWeapon.weaponSpring;
+                        wpnSprng.CurrentPos = ___telefragStartPosition;
+                        wpnSprng.TargetValue = ___telefragStartPosition;
+                    }
+                    if (___telefragTarget is EnemyMimic)
+                    {
+                        ref var wpnSprng1 = ref (___telefragTarget as EnemyMimic).weapon.weaponSpring;
+                        wpnSprng1.CurrentPos = ___telefragStartPosition;
+                        wpnSprng1.TargetValue = ___telefragStartPosition;
+                        ref var wpnSprng2 = ref (___telefragTarget as EnemyMimic).weapon2.weaponSpring;
+                        wpnSprng2.CurrentPos = ___telefragStartPosition;
+                        wpnSprng2.TargetValue = ___telefragStartPosition;
+                    }
+
+                    ((___telefragTarget as EnemyTripwire)?.weapons[0] as TripwireWeapon)?.WeaponStart();
+
+                    if (___telefragTarget is EnemyBalloon)
+                    {
+                        var originField = typeof(EnemyBalloon).GetField("_origin", AccessTools.allDeclared);
+                        originField.SetValue(___telefragTarget, ___telefragStartPosition);
+                    }
+
                     DebugLog("new fragger");
 
                     __instance.ForceZeroVelocity();
                     ___moveDirection = Vector3.zero;
-                    //Vector3 vel = normalized * __instance.telefragSpeed * d;
-                    //vel.y *= num;
-                    //__instance.AddVelocity(vel);
-                    //if (flag2)
-                    //{
-                    //    __instance.ForceJump(__instance.telefragUp, false, true, 1f);
-                    //}
-                    //___telefragTarget.OnHit(___transform.position, damage, BaseDamageable.DamageSource.Dash);
-                    //if (flag)
-                    //{
-                    //    if (!GameDataManager.saveData.playerAchievementData.bookOfLifeMimicDeath)
-                    //    {
-                    //        GameDataManager.saveData.playerAchievementData.bookOfLifeMimicDeath = true;
-                    //        GameDataManager.SaveGame();
-                    //    }
-                    //    Achievements.SyncBookOfLifeMimicAchievement(true);
-                    //    RM.mechController.OnHit(RM.mechController.currentHealth, ___telefragTarget.transform.position, true);
-                    //}
 
                     ___telefragTarget.OnTelefragEnd();
                     ___telefragTarget = null;
                     __instance.timeSinceLastTelefrag = 0f;
                     RM.mechController.TriggerInvincibilityTimer();
+
+                    var lastTelefragTargetField = typeof(MechController).GetField("_lastTelefragTarget", AccessTools.allDeclared);
+                    lastTelefragTargetField.SetValue(RM.mechController, null);
+                    //lastBoof = Time.time;
+                    //lastTarget = ___telefragTarget;
                 }
+                return false;
+            }
+        }
+        [HarmonyPatch(typeof(EnemyShocker))]
+        class EnemyShocker_
+        {
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(EnemyShocker.OnTelefragEnd))]
+            static bool SkipTelefragEnd()
+            {
+                return false;
+            }
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(EnemyShocker.OnTelefragStart))]
+            static bool SkipTelefragStart()
+            {
+                return false;
+            }
+        }
+        [HarmonyPatch(typeof(EnemyDemonBall))]
+        class EnemyDemonBall_
+        {
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(EnemyDemonBall.OnTelefragStart))]
+            static bool SkipTelefragStart()
+            {
                 return false;
             }
         }
