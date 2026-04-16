@@ -61,11 +61,21 @@ namespace ToolsOfTheTrade.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap AirZooka {
+            get {
+                object obj = ResourceManager.GetObject("AirZooka", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] rocketmine {
+        internal static byte[] toolsofthetrade {
             get {
-                object obj = ResourceManager.GetObject("rocketmine", resourceCulture);
+                object obj = ResourceManager.GetObject("toolsofthetrade", resourceCulture);
                 return ((byte[])(obj));
             }
         }

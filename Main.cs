@@ -1,17 +1,26 @@
-﻿using HarmonyLib;//Patching functions
-using MelonLoader;
-using Steamworks;
-using System.Reflection;
-using System.Runtime.Remoting.Messaging;
-using ToolsOfTheTrade.Weapons;
+﻿using MelonLoader;
+using MelonPrefManager.UI.InteractiveValues;
+using System.Collections.Generic;
+using System.Linq;
+using Type = System.Type;
+using Activator = System.Activator;
+using Exception = System.Exception;
+using System;
 using UnityEngine;
+using HarmonyLib;
 
 //using UniverseLib.Input;//If you want to handle input
 
 namespace ToolsOfTheTrade
 {
+
+
     internal class Main : MelonMod
     {
+
+        public static readonly string mainCategoryName = "Tools of the Trade";
+        public static readonly string mainCategoryDebug = "Tools of the Trade/Debug";
+        internal static AssetBundle assets;
         internal static readonly HarmonyLib.Harmony harmony = new("Slacking.ToolsOfTheTrade");
         internal static readonly IEnumerable<Type> submoduleTypeList = System.Reflection.Assembly.GetExecutingAssembly().GetTypes().Where(type => type.IsClass
                                                                                                && type.IsSubclassOf(typeof(SlackingBase))
@@ -21,14 +30,17 @@ namespace ToolsOfTheTrade
         {
             get; private set;
         }
+        public override void OnEarlyInitializeMelon()
+        {
+            InteractiveValue.RegisterIValueType<BigChungus.Settings.InteractiveCustomCard>();
+        }
         public override void OnInitializeMelon()
         {
             foreach (SlackingBase submodule in submoduleList)
             {
-                LoggerInstance.Msg(submodule.GetType());
                 submodule.RegisterSettings();
+                //LoggerInstance.Msg($"{submodule.GetType()} Registered Settings");
             }
-            LoggerInstance.Msg("Registered settings");
         }
         public override void OnLateInitializeMelon()
         {
@@ -40,6 +52,7 @@ namespace ToolsOfTheTrade
             }
             try
             {
+                LoadAssets();
                 PatchSubmodules();
             }
             catch (Exception e)
@@ -49,24 +62,34 @@ namespace ToolsOfTheTrade
             }
             LoggerInstance.Msg("Completed setup.");
         }
-        public override void OnPreferencesSaved()
-        {
-            LoggerInstance.Msg("OnPreferencesSaved");
-            foreach (var submodule in submoduleList)
-            {
-                //LoggerInstance.Msg($"{submodule.GetType()} patching");
-
-                submodule.Patch();
-                submodule.OnPreferencesSaved();
-            }
-        }
         private void PatchSubmodules()
         {
             foreach (var submodule in submoduleList)
             {
+                HarmonyLib.Tools.HarmonyFileLog.Enabled = true;
                 //LoggerInstance.Msg($"{submodule.GetType()} patching");
-                submodule.Patch();
+                submodule.TryPatch();
             }
         }
+
+        private void LoadAssets()
+        {
+            if (assets == null)
+            {
+                assets = AssetBundle.LoadFromMemory(Resources.Resources.toolsofthetrade);
+                if (assets == null)
+                {
+                    throw new ArgumentException("failed to load AssetBundle");
+                }
+                else
+                {
+                    LoggerInstance.Msg("Loaded assets");
+                }
+            }
+        }
+    }
+    public static class LittleHelper
+    {
+        
     }
 }

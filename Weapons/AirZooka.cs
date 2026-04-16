@@ -1,23 +1,25 @@
-﻿using HarmonyLib;
+﻿/*using HarmonyLib;
 using MelonLoader;
+using MelonLoader.Preferences;
 using UnityEngine;
 
 namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
-    internal class AirZooka : WeaponTool<AirZooka>
+    internal class AirZooka : SlackingMod<AirZooka>
     {
         class Settings : ModSettings
         {
             public static MelonPreferences_Entry<float> AirZookaMomentumModifier;
             public static MelonPreferences_Entry<float> AirZookaDragFactor;
+            public static MelonPreferences_Entry<float> AirZookaTurnModifier;
         }
         public override void RegisterSettings()
         {
-            var Selection = MelonPreferences.CreateCategory(ToolsOfTheTrade.Settings.mainCategoryName);
-
+            var Selection = MelonPreferences.CreateCategory(Main.mainCategoryName);
             Settings.AirZookaMomentumModifier = Selection.CreateEntry("AirZookaMomentumModifier", 1f);
             Settings.AirZookaDragFactor = Selection.CreateEntry("AirZookaDragFactor", 2f);
+            Settings.AirZookaTurnModifier = Selection.CreateEntry("AirZookaTurnModifier", 0.5f,validator: new ValueRange<float>(0f,1f));
 
             base.RegisterSettings();
         }
@@ -29,10 +31,10 @@ namespace ToolsOfTheTrade.Weapons
         static Vector3 groundDragStore = default;
         static Vector3 airDragStore = default;
 
-        static float reducedDragTimer = 0;
-        static bool reducedDragActive = false;
+        static float dashTimer = 0;
+        static bool dashActive = false;
 
-        private const float reducedDragTimerMax = 1f;
+        private const float dashTimerMax = 1f;
         //private const float momentumModifier = 1;
 
         [HarmonyPatch(typeof(ProjectileBase))]
@@ -108,30 +110,30 @@ namespace ToolsOfTheTrade.Weapons
                                    ref Vector3 ___groundDrag,
                                    ref Vector3 ___airDrag)
             {
-                if (reducedDragTimer == reducedDragTimerMax)
+                if (dashTimer == dashTimerMax)
                 {
                     DebugLog("drag start");
                     groundDragStore = ___groundDrag;
                     airDragStore = ___airDrag;
                     ___groundDrag = ___groundDrag / Settings.AirZookaDragFactor.Value;
                     ___airDrag = ___airDrag / Settings.AirZookaDragFactor.Value;
-                    reducedDragActive = true;
+                    dashActive = true;
                 }
-                if (reducedDragActive)
+                if (dashActive)
                 {
-                    reducedDragTimer -= deltaTime;
-                    if (reducedDragTimer <= 0)
+                    dashTimer -= deltaTime;
+                    if (dashTimer <= 0)
                     {
                         DebugLog("drag end");
                         ___groundDrag = groundDragStore;
                         ___airDrag = airDragStore;
-                        reducedDragActive = false;
+                        dashActive = false;
                     }
                 }
             }
             [HarmonyPostfix]
             [HarmonyPatch(nameof(FirstPersonDrifter.UpdateVelocity))]
-            static void DoDashOrDrain(ref Vector3 currentVelocity, ref Vector3 ___velocity, ref FirstPersonDrifter __instance)
+            static void DoDashOrDrain(ref Vector3 currentVelocity, ref Vector3 ___velocity, Vector3 ___movementVelocity, ref FirstPersonDrifter __instance)
             {
                 //DebugLog();
                 if (shouldDrainSpeed)
@@ -143,6 +145,16 @@ namespace ToolsOfTheTrade.Weapons
                 {
                     shouldStartDash = false;
                     StartDash(ref currentVelocity, ref ___velocity);
+                }else if (dashActive)
+                {
+                    var angle = Mathf.Sqrt(Vector3.Angle(___velocity, ___movementVelocity)) * Settings.AirZookaTurnModifier.Value;
+                    DebugLog($"angle: {angle}");
+                    var newDirection = Vector3.RotateTowards(___velocity, ___movementVelocity, Mathf.Deg2Rad * angle, ___velocity.magnitude);
+                    ___velocity = newDirection.normalized * ___velocity.magnitude;
+                    angle = Mathf.Sqrt(Vector3.Angle(currentVelocity, ___movementVelocity)) * Settings.AirZookaTurnModifier.Value;
+                    DebugLog($"angle2: {angle}");
+                    newDirection = Vector3.RotateTowards(currentVelocity, ___movementVelocity, Mathf.Deg2Rad * angle, currentVelocity.magnitude);
+                    currentVelocity = newDirection.normalized * currentVelocity.magnitude;
                 }
             }
             static void DrainSpeed(ref Vector3 currentVelocity, ref FirstPersonDrifter __instance)
@@ -159,12 +171,12 @@ namespace ToolsOfTheTrade.Weapons
                                              .normalized;
                 float dot = Vector3.Dot(forwardDirection, flatCurrent);
                 if (dot < 10 || flatCurrent.magnitude < 18.75) { return; }
-                float flatRatio = /*18.75f / flatCurrent.magnitude*/ 0;
+                float flatRatio = *//*18.75f / flatCurrent.magnitude*//* 0;
                 float dotRatiod = dot * flatRatio;
                 gatheredMomentum += dot - dotRatiod;
                 __instance.MoveStun();
                 __instance.moveStunRecoverySpeed = 0.5f;
-                Vector3 clampedFlat = /*Vector3.ClampMagnitude(flatCurrent, 18.75f)*/ default;
+                Vector3 clampedFlat = *//*Vector3.ClampMagnitude(flatCurrent, 18.75f)*//* default;
                 currentVelocity.x = clampedFlat.x;
                 currentVelocity.z = clampedFlat.z;
                 DebugLog($"After: {currentVelocity}speed {gatheredMomentum}momentum");
@@ -183,9 +195,10 @@ namespace ToolsOfTheTrade.Weapons
                 currentVelocity += Settings.AirZookaMomentumModifier.Value * gatheredMomentum * forwardDirection;
                 ___velocity += Settings.AirZookaMomentumModifier.Value * gatheredMomentum * forwardDirection;
                 gatheredMomentum = 0;
-                reducedDragTimer = reducedDragTimerMax;
+                dashTimer = dashTimerMax;
                 DebugLog($"After: {currentVelocity}speed {gatheredMomentum}momentum");
             }
         }
     }
 }
+*/
