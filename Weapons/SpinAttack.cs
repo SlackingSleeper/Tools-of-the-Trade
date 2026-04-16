@@ -1,11 +1,11 @@
-﻿using HarmonyLib;
+﻿/*using HarmonyLib;
 using MelonLoader;
 using UnityEngine;
 
 namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
-    internal class SpinAttack : WeaponTool<SpinAttack>
+    internal class SpinAttack : SlackingMod<SpinAttack>
     {
         class Settings : ModSettings
         {
@@ -16,7 +16,7 @@ namespace ToolsOfTheTrade.Weapons
         }
         public override void RegisterSettings()
         {
-            Settings.category = MelonPreferences.CreateCategory(ToolsOfTheTrade.Settings.mainCategoryName);
+            Settings.category = MelonPreferences.CreateCategory(Main.mainCategoryName);
 
             Settings.SpinAttackSpinSpeed = Settings.category.CreateEntry("SpinAttackSpinSpeed", 1f);
             Settings.SpinAttackLength = Settings.category.CreateEntry("SpinAttackLength", 10f);
@@ -198,3 +198,4 @@ namespace ToolsOfTheTrade.Weapons
         }
     }
 }
+*/

@@ -1,12 +1,13 @@
-﻿using UnityEngine;
+﻿/*using UnityEngine;
 using HarmonyLib;
 using MelonLoader;
+using System;
 
 namespace ToolsOfTheTrade.Weapons
 {
     [HarmonyPatch]
     //[HarmonyPatchCategory("MineLayer")]
-    internal class MineLayer : WeaponTool<MineLayer>
+    internal class MineLayer : SlackingMod<MineLayer>
     {
         class Settings : ModSettings
         {
@@ -83,33 +84,23 @@ namespace ToolsOfTheTrade.Weapons
             }
 
         }
-        static private UnityEngine.AssetBundle asset;
         static private UnityEngine.GameObject minePrefab;
-        public override void OnPreferencesSaved()
+        public override void Patch()
         {
             if (Settings.Active.Value == true)
             {
-                DebugLog("Awoke");
-                if (asset == null)
+
+                minePrefab = Main.assets.LoadAsset<GameObject>("RocketMine");
+                if (minePrefab == null)
                 {
-                    asset = AssetBundle.LoadFromMemory(Resources.Resources.rocketmine);
-                    if (asset == null)
-                    {
-                        DebugLog("failed to LoadFromMemory");
-                        return;
-                    }
-                    minePrefab = asset.LoadAsset<GameObject>("RocketMine");
-                    if (minePrefab == null)
-                    {
-                        DebugLog("failed to LoadAsset");
-                        return;
-                    }
-                    else
-                    {
-                        DebugLog("Mine to LoadAsset");
-                    }
+                    throw new ArgumentException("failed to load Asset \"RocketMine\"");
+                }
+                else
+                {
+                    DebugLog("Loaded asset \"RocketMine\"");
                 }
             }
+            base.Patch();
         }
 
         [HarmonyPatch(typeof(MechController))]
@@ -169,3 +160,4 @@ namespace ToolsOfTheTrade.Weapons
         }
     }
 }
+*/

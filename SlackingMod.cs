@@ -1,28 +1,32 @@
 ﻿using HarmonyLib;
 using MelonLoader;
 using System.Reflection;
+using Type = System.Type;
+using System.Collections.Generic;
+using Exception = System.Exception;
 using System.Linq;
-using System.Security.Cryptography;
-using UniverseLib;
-using System.Collections.ObjectModel;
+using System.Runtime.Hosting;
+using System;
+using UnityEngine.Assertions;
 
 namespace ToolsOfTheTrade
 {
-    internal abstract class SlackingMod<DerivedType> : SlackingBase where DerivedType : SlackingMod<DerivedType>
+    public abstract class SlackingMod<DerivedType> : SlackingBase where DerivedType : SlackingMod<DerivedType>
     {
         public static bool patched = false;
-        protected class ModSettings
+        public class ModSettings
         {
             public static MelonPreferences_Entry<bool> Debug;
             public static MelonPreferences_Entry<bool> Active;
         }
         public override void RegisterSettings()
         {
-            var debugCategory = MelonPreferences.CreateCategory(Settings.mainCategoryDebug, is_hidden: true);
+            var debugCategory = MelonPreferences.CreateCategory(Main.mainCategoryDebug, is_hidden: true);
             ModSettings.Debug = debugCategory.CreateEntry($"{typeof(DerivedType).Name} debug messages", false);
 
-            var regularCategory = MelonPreferences.CreateCategory(Settings.mainCategoryName);
+            var regularCategory = MelonPreferences.CreateCategory(Main.mainCategoryName);
             ModSettings.Active = regularCategory.CreateEntry($"Activate {typeof(DerivedType).Name}", true);
+            ModSettings.Active.OnEntryValueChanged.Subscribe((_, _) => TryPatch());
         }
         private static bool IsHarmonyPatch(CustomAttributeData attribute) => attribute.AttributeType == typeof(HarmonyPatch);
         private static bool HasHarmonyPatch(MemberInfo obj) => obj.CustomAttributes.Any(IsHarmonyPatch);
@@ -42,37 +46,72 @@ namespace ToolsOfTheTrade
                                                                    type.GetMethods(AccessTools.allDeclared)
                                                                        .Where(HasHarmonyPatch)
                                                                        .Select(method => (method.CustomAttributes,
-                                                                                          new HarmonyMethod(method)))
+                                                                                          new HarmonyMethod(method,debug:true)))
                                                                        .ToArray()))
                                                   .ToArray();
                 return methodList;
             }
         }
-        protected static void DebugLog(object message = null, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        public static void DebugLog(object message = null, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
         {
             if (ModSettings.Debug.Value)
             {
-            Melon<Main>.Logger.Msg($"[{typeof(DerivedType).Name}][{functionName}]: {message}");
+                Melon<Main>.Logger.Msg($"[{typeof(DerivedType).Name}][{functionName}]: {message}");
+            }
+        }
+        public static void DebugLog(object message, System.ConsoleColor colour, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        {
+            if (ModSettings.Debug.Value)
+            {
+                Melon<Main>.Logger.Msg(colour, $"[{typeof(DerivedType).Name}][{functionName}]: {message}");
+            }
+        }
+        public static void PrintSurroundingIL(List<CodeInstruction> instructions, int startPoint, int focusLength, int linesBefore, int linesAfter, [System.Runtime.CompilerServices.CallerMemberName] string functionName = "")
+        {
+            Assert.IsTrue(startPoint < instructions.Count && startPoint >= 0);
+            var prefixStart = Math.Max(startPoint - linesBefore, 0);
+            var suffixEnd = Math.Min(startPoint + focusLength + linesAfter, instructions.Count() - 1);
+            for (int index = prefixStart; index < suffixEnd; index++)
+            {
+                if (index >= startPoint && index < startPoint + focusLength)
+                {
+                    DebugLog($"{index}: {instructions[index]}", System.ConsoleColor.DarkMagenta, functionName);
+                }
+                else
+                {
+                    DebugLog($"{index}: {instructions[index]}", functionName);
+                }
             }
         }
         //TODO:  add check for if the patch is in the state that is promised
+        public override void TryPatch()
+        {
+            try
+            {
+                Patch();
+            }
+            catch (Exception e)
+            {
+                DebugLog($"Failed to patch. {e}");
+            }
+        }
         public override void Patch()
         {
             if (ModSettings.Active.Value == patched)
             {
-                DebugLog($"skip patching");
+                DebugLog($"skipped patching");
                 return;
             }
             if (ModSettings.Active.Value)
             {
-                DebugLog($"patchList length: {MethodList.Length}");
+                DebugLog($"Types to patch: {MethodList.Length}");
                 foreach ((Type type, var patchList) in MethodList)
                 {
                     DebugLog($"{type.Name} patchList length: {patchList.Length}");
                     foreach (var (attributeList, patch) in patchList)
                     {
                         bool methodHasAttribute<T>() => attributeList.Any(attribute => attribute.AttributeType == typeof(T));
-                        DebugLog($"{type.Name}::{patch.methodName} => {patch.method.Name}");
+                        DebugLog($"\t{patch.methodName} => {patch.method.Name}");
 
                         MethodInfo target;
                         if (patch.argumentTypes == default)
