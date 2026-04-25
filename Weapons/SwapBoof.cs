@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+﻿/*using HarmonyLib;
 using KinematicCharacterController;
 using NeonLite;
 using Steamworks;
@@ -250,7 +250,7 @@ namespace ToolsOfTheTrade.Weapons
             lastTeleTarget = null;
             BigChungus.currentlyActiveUpdateEffects.Remove(data.cardID);
         }
-        static void TeleAbort()
+        static void Abort(string _)
         {
             teleSwapping = false;
             BigChungus.currentlyActiveUpdateEffects.Remove(data.cardID);
@@ -270,7 +270,7 @@ namespace ToolsOfTheTrade.Weapons
                 }
             }
         }
-        /*        [HarmonyPatch(typeof(FirstPersonDrifter))]
+        *//*        [HarmonyPatch(typeof(FirstPersonDrifter))]
                 class FirstPersonDrifter_
                 {
                     [HarmonyPrefix]
@@ -389,7 +389,7 @@ namespace ToolsOfTheTrade.Weapons
                         }
                         return false;
                     }
-                }*/
+                }*//*
         [HarmonyPatch(typeof(EnemyJumper))]
         public class EnemyJumper_
         {
@@ -448,8 +448,7 @@ namespace ToolsOfTheTrade.Weapons
                 {
                     BigChungus.customDictionary.Add(data.cardID, new(data: data,
                                                                      checkDiscardAllowed: CanTeleSwap,
-                                                                     getBakedRenderer: BakedRenderer,
-                                                                     abortAbility: TeleAbort,
+                                                                     abortAbility: Abort,
                                                                      doDiscard: TeleStart,
                                                                      updateVelocityEarly: TeleUpdate,
                                                                      toggleCustomUI: ToggleUI));
@@ -468,3 +467,4 @@ namespace ToolsOfTheTrade.Weapons
         }
     }
 }
+*/
