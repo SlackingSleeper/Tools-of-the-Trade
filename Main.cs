@@ -1,5 +1,4 @@
 ﻿using MelonLoader;
-using MelonPrefManager.UI.InteractiveValues;
 using System.Collections.Generic;
 using System.Linq;
 using Type = System.Type;
@@ -7,14 +6,9 @@ using Activator = System.Activator;
 using Exception = System.Exception;
 using System;
 using UnityEngine;
-using HarmonyLib;
-
-//using UniverseLib.Input;//If you want to handle input
 
 namespace ToolsOfTheTrade
 {
-
-
     internal class Main : MelonMod
     {
 
@@ -26,33 +20,27 @@ namespace ToolsOfTheTrade
                                                                                                && type.IsSubclassOf(typeof(SlackingBase))
                                                                                                && (!type.IsAbstract));
         internal static readonly IEnumerable<SlackingBase> submoduleList = submoduleTypeList.Select(type => (SlackingBase)Activator.CreateInstance(type));
-        public static Game Game
-        {
-            get; private set;
-        }
-        public override void OnEarlyInitializeMelon()
-        {
-            InteractiveValue.RegisterIValueType<BigChungus.Settings.InteractiveCustomCard>();
-        }
+        //public override void OnEarlyInitializeMelon()
+        //{
+        //    InteractiveValue.RegisterIValueType<BigChungus.Settings.InteractiveCustomCard>();
+        //}
         public override void OnInitializeMelon()
         {
             foreach (SlackingBase submodule in submoduleList)
             {
                 submodule.RegisterSettings();
-                //LoggerInstance.Msg($"{submodule.GetType()} Registered Settings");
             }
         }
         public override void OnLateInitializeMelon()
         {
-            Game = Singleton<Game>.Instance;
-            if (Game == null)
+            if (Singleton<Game>.Instance == null)
             {
                 LoggerInstance.Msg($"failed to initialise");
                 return;
             }
             try
             {
-                LoadAssets();
+                NeonLite.Modules.Anticheat.Register(this.MelonAssembly);
                 PatchSubmodules();
             }
             catch (Exception e)
@@ -67,29 +55,23 @@ namespace ToolsOfTheTrade
             foreach (var submodule in submoduleList)
             {
                 HarmonyLib.Tools.HarmonyFileLog.Enabled = true;
-                //LoggerInstance.Msg($"{submodule.GetType()} patching");
                 submodule.TryPatch();
             }
         }
-
-        private void LoadAssets()
-        {
-            if (assets == null)
-            {
-                assets = AssetBundle.LoadFromMemory(Resources.Resources.toolsofthetrade);
-                if (assets == null)
-                {
-                    throw new ArgumentException("failed to load AssetBundle");
-                }
-                else
-                {
-                    LoggerInstance.Msg("Loaded assets");
-                }
-            }
-        }
-    }
-    public static class LittleHelper
-    {
-        
+        //private void LoadAssets()
+        //{
+        //    if (assets == null)
+        //    {
+        //        assets = AssetBundle.LoadFromMemory(Resources.Resources.toolsofthetrade);
+        //        if (assets == null)
+        //        {
+        //            throw new ArgumentException("failed to load AssetBundle");
+        //        }
+        //        else
+        //        {
+        //            LoggerInstance.Msg($"Loaded {assets.GetAllAssetNames().Length} assets");
+        //        }
+        //    }
+        //}
     }
 }
