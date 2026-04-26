@@ -39,9 +39,34 @@ namespace ToolsOfTheTrade
             public Func<BaseDamageable, bool> onMovementHit = onMovementHit;
             public Func<Vector3, Vector3, ProjectileBase> createCustomProjectile = createCustomProjectile;
         }
-        public static readonly Dictionary<string, CustomCardInfo> customDictionary = [];
-        static Dictionary<string, PlayerCardData> vanillaCardDictionary;
-        public static Dictionary<string, PlayerCardData> VanillaCardDictionary
+        public static void Register(CustomCardInfo cardInfo)
+        {//TODO: check that mandatory things are non-null
+            if (customDictionary.ContainsKey(cardInfo.data.cardID)==false)
+            {
+                if ((int)cardInfo.data.discardAbility >200)
+                {
+                    if (discardNumberToCardID.ContainsKey((int)cardInfo.data.discardAbility) == false)
+                    {
+                        discardNumberToCardID.Add((int)cardInfo.data.discardAbility, cardInfo.data.cardID);
+                    }
+                    else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.discardAbility} is already registered"); }
+                }
+                customDictionary.Add(cardInfo.data.cardID, cardInfo);
+            }
+            else { throw new ArgumentException($"cardID {cardInfo.data.cardID} is already registered"); }
+        }
+        public static bool StartEffect(string cardID)
+        {
+            return currentlyActiveUpdateEffects.Add(cardID);
+        }
+        public static bool StopEffect(string cardID)
+        {
+            return currentlyActiveUpdateEffects.Remove(cardID);
+        }
+        private static readonly Dictionary<string, CustomCardInfo> customDictionary = [];
+
+        private static Dictionary<string, PlayerCardData> vanillaCardDictionary;
+        private static Dictionary<string, PlayerCardData> VanillaCardDictionary
         {
             get
             {
@@ -58,8 +83,8 @@ namespace ToolsOfTheTrade
                 return vanillaCardDictionary;
             }
         }
-        public static readonly Dictionary<int, string> discardNumberToCardID = [];
-        public static readonly HashSet<string> currentlyActiveUpdateEffects = [];
+        private static readonly Dictionary<int, string> discardNumberToCardID = [];
+        private static readonly HashSet<string> currentlyActiveUpdateEffects = [];
         public static readonly Dictionary<string, string> cardOverrides = [];
         public class Settings : ModSettings
         {
