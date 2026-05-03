@@ -24,7 +24,7 @@ namespace ToolsOfTheTrade
                                     Action doDiscard = null,
                                     Action<float> updateVelocityEarly = null,
                                     Action<float> updateVelocityLate = null,
-                                    Action<int> doConsume = null,
+                                    Action<int, string> doConsume = null,
                                     Func<BaseDamageable, bool> onMovementHit = null,
                                     Func<Vector3, Vector3, ProjectileBase> createCustomProjectile = null)
         {
@@ -34,7 +34,7 @@ namespace ToolsOfTheTrade
             public Action doDiscard = doDiscard;
             public Action<float> updateVelocityEarly = updateVelocityEarly;
             public Action<float> updateVelocityLate = updateVelocityLate;
-            public Action<int> doConsume = doConsume;
+            public Action<int, string> doConsume = doConsume;
             public Action<string> abortAbility = abortAbility;
             public Func<BaseDamageable, bool> onMovementHit = onMovementHit;
             public Func<Vector3, Vector3, ProjectileBase> createCustomProjectile = createCustomProjectile;
@@ -50,6 +50,14 @@ namespace ToolsOfTheTrade
                         discardNumberToCardID.Add((int)cardInfo.data.discardAbility, cardInfo.data.cardID);
                     }
                     else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.discardAbility} is already registered"); }
+                }
+                else if(cardInfo.data.discardAbility == PlayerCardData.DiscardAbility.Consumable)
+                {
+                    if (discardNumberToCardID.ContainsKey((int)cardInfo.data.consumableType) == false)
+                    {
+                        discardNumberToCardID.Add((int)cardInfo.data.consumableType, cardInfo.data.cardID);
+                    }
+                    else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.consumableType} is already registered"); }
                 }
                 customDictionary.Add(cardInfo.data.cardID, cardInfo);
             }
@@ -306,8 +314,12 @@ namespace ToolsOfTheTrade
                  }
                  else { return null; }
              }*/
-            public static void DoConsume(int consumeNumber)
+            public static void DoConsume(int consumeNumber, int optionalInt, string optionalString)
             {
+                if (discardNumberToCardID.TryGetValue(consumeNumber, out string cardID))
+                {
+                    customDictionary[cardID]?.doConsume.Invoke(optionalInt, optionalString);
+                }
                 //TODO: Make consumable effects and injector
             }
 
@@ -329,6 +341,15 @@ namespace ToolsOfTheTrade
         [HarmonyPatch(typeof(MechController))]
         class _MechController
         {
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(MechController.DoConsumable))]
+            static bool CustomConsumable(PlayerCardData.ConsumableType consumableType, bool ____isAlive)
+            {
+                if (!____isAlive) { return false; }
+                if(consumableType <= PlayerCardData.ConsumableType.GreenMemoryItem) { return true; }
+                Handlers.DoConsume((int)consumableType);
+                return false;
+            }
             [HarmonyPrefix]
             [HarmonyPatch("DoDiscardAbility")]
             static void ClearCustomEffectsOnVanillaDiscard(PlayerCardData.DiscardAbility ability)
