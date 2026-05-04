@@ -41,9 +41,9 @@ namespace ToolsOfTheTrade
         }
         public static void Register(CustomCardInfo cardInfo)
         {//TODO: check that mandatory things are non-null
-            if (customDictionary.ContainsKey(cardInfo.data.cardID)==false)
+            if (customDictionary.ContainsKey(cardInfo.data.cardID) == false)
             {
-                if ((int)cardInfo.data.discardAbility >200)
+                if ((int)cardInfo.data.discardAbility > 200)
                 {
                     if (discardNumberToCardID.ContainsKey((int)cardInfo.data.discardAbility) == false)
                     {
@@ -51,7 +51,7 @@ namespace ToolsOfTheTrade
                     }
                     else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.discardAbility} is already registered"); }
                 }
-                else if(cardInfo.data.discardAbility == PlayerCardData.DiscardAbility.Consumable)
+                else if (cardInfo.data.discardAbility == PlayerCardData.DiscardAbility.Consumable)
                 {
                     if (discardNumberToCardID.ContainsKey((int)cardInfo.data.consumableType) == false)
                     {
@@ -343,11 +343,11 @@ namespace ToolsOfTheTrade
         {
             [HarmonyPrefix]
             [HarmonyPatch(nameof(MechController.DoConsumable))]
-            static bool CustomConsumable(PlayerCardData.ConsumableType consumableType, bool ____isAlive)
+            static bool CustomConsumable(PlayerCardData.ConsumableType consumableType, int optionalInt, string optionalString, bool ____isAlive)
             {
                 if (!____isAlive) { return false; }
-                if(consumableType <= PlayerCardData.ConsumableType.GreenMemoryItem) { return true; }
-                Handlers.DoConsume((int)consumableType);
+                if (consumableType <= PlayerCardData.ConsumableType.GreenMemoryItem) { return true; }
+                Handlers.DoConsume((int)consumableType, optionalInt, optionalString);
                 return false;
             }
             [HarmonyPrefix]
