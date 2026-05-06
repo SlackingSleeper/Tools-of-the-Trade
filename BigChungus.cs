@@ -11,6 +11,7 @@ using System.Linq;
 using static HarmonyLib.Code;
 using MelonLoader;
 using System.Runtime.CompilerServices;
+using System.IO;
 
 namespace ToolsOfTheTrade
 {
@@ -22,8 +23,7 @@ namespace ToolsOfTheTrade
                                     Action<string> abortAbility = null,
                                     Action<bool> toggleCustomUI = null,
                                     Action doDiscard = null,
-                                    Action<float> updateVelocityEarly = null,
-                                    Action<float> updateVelocityLate = null,
+                                    Func<Vector3, float,Vector3> updateVelocity = null,
                                     Action<int, string> doConsume = null,
                                     Func<BaseDamageable, bool> onMovementHit = null,
                                     Func<Vector3, Vector3, ProjectileBase> createCustomProjectile = null)
@@ -32,15 +32,14 @@ namespace ToolsOfTheTrade
             public Func<bool> checkDiscardAllowed = checkDiscardAllowed;
             public Action<bool> toggleCustomUI = toggleCustomUI;
             public Action doDiscard = doDiscard;
-            public Action<float> updateVelocityEarly = updateVelocityEarly;
-            public Action<float> updateVelocityLate = updateVelocityLate;
+            public Func<Vector3, float, Vector3> updateVelocity = updateVelocity;
             public Action<int, string> doConsume = doConsume;
             public Action<string> abortAbility = abortAbility;
             public Func<BaseDamageable, bool> onMovementHit = onMovementHit;
             public Func<Vector3, Vector3, ProjectileBase> createCustomProjectile = createCustomProjectile;
         }
         public static void Register(CustomCardInfo cardInfo)
-        {//TODO: check that mandatory things are non-null
+        {
             if (customDictionary.ContainsKey(cardInfo.data.cardID) == false)
             {
                 if ((int)cardInfo.data.discardAbility > 200)
@@ -49,15 +48,14 @@ namespace ToolsOfTheTrade
                     {
                         discardNumberToCardID.Add((int)cardInfo.data.discardAbility, cardInfo.data.cardID);
                     }
-                    else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.discardAbility} is already registered"); }
                 }
                 else if (cardInfo.data.discardAbility == PlayerCardData.DiscardAbility.Consumable)
                 {
-                    if (discardNumberToCardID.ContainsKey((int)cardInfo.data.consumableType) == false)
+                    if (cardInfo.data.consumableType > PlayerCardData.ConsumableType.GreenMemoryItem
+                     && discardNumberToCardID.ContainsKey((int)cardInfo.data.consumableType) == false)
                     {
                         discardNumberToCardID.Add((int)cardInfo.data.consumableType, cardInfo.data.cardID);
                     }
-                    else { throw new ArgumentException($"discardAbility {(int)cardInfo.data.consumableType} is already registered"); }
                 }
                 customDictionary.Add(cardInfo.data.cardID, cardInfo);
             }
@@ -65,6 +63,12 @@ namespace ToolsOfTheTrade
         }
         public static bool StartEffect(string cardID)
         {
+            var cardInfo = customDictionary[cardID];
+            if(cardInfo.updateVelocity == null 
+            || cardInfo.abortAbility == null)
+            {
+                throw new Exception("To start an effect you must have updateVelocity AND abortAbility registered");
+            }
             return currentlyActiveUpdateEffects.Add(cardID);
         }
         public static bool StopEffect(string cardID)
@@ -105,6 +109,8 @@ namespace ToolsOfTheTrade
                 {
                     vanillaOverrides ??= new()
                         {
+                        {"FIST", Settings.fistOverride },
+                        {"KATANA", Settings.katanaOverride },
                             {"PISTOL", Settings.elevateOverride},
                             {"RIFLE", Settings.godspeedOverride},
                             {"SHOTGUN", Settings.purifyOverride},
@@ -121,6 +127,8 @@ namespace ToolsOfTheTrade
                 None, Elevate, Godspeed, Purify, Stomp, Dominion, Fireball, Boof, Health, Ammo
             }
             //static HashSet<CustomCardInfo> CustomCards;
+            public static MelonPreferences_Entry<string> fistOverride;
+            public static MelonPreferences_Entry<string> katanaOverride;
             public static MelonPreferences_Entry<string> elevateOverride;
             public static MelonPreferences_Entry<string> godspeedOverride;
             public static MelonPreferences_Entry<string> purifyOverride;
@@ -179,6 +187,9 @@ namespace ToolsOfTheTrade
 
             var overrrideCategory = MelonPreferences.CreateCategory(Main.mainCategoryName);
             Settings.elevateOverride = overrrideCategory.CreateEntry("elevateOverride", "None", validator: new Settings.ExistingCardValidator());
+            Settings.elevateOverride = overrrideCategory.CreateEntry("elevateOverride", "None", validator: new Settings.ExistingCardValidator());
+
+            Settings.elevateOverride = overrrideCategory.CreateEntry("elevateOverride", "None", validator: new Settings.ExistingCardValidator());
             Settings.godspeedOverride = overrrideCategory.CreateEntry("godspeedOverride", "None", validator: new Settings.ExistingCardValidator());
             Settings.purifyOverride = overrrideCategory.CreateEntry("purifyOverride", "None", validator: new Settings.ExistingCardValidator());
             Settings.stompOverride = overrrideCategory.CreateEntry("stompOverride", "None", validator: new Settings.ExistingCardValidator());
@@ -186,28 +197,9 @@ namespace ToolsOfTheTrade
             Settings.fireballOverride = overrrideCategory.CreateEntry("fireballOverride", "None", validator: new Settings.ExistingCardValidator());
             Settings.boofOverride = overrrideCategory.CreateEntry("boofOverride", "None", validator: new Settings.ExistingCardValidator());
         }
-        /** modder needs to implement:
-        *   PlayerCardData
-        *   Various assets
-        *       Card/hud textures
-        *   Depending on use:
-        *       Projectile from BaseProjectile
-        *       DoConsumable
-        *       DoDiscardAbility
-        *       UseDiscardAbility
-        *       Update Velocity stuff
-        *       MechController::Update UI stuff
-        *       MechController::FireCard -> hitscan effect stuff
-        *       ?UIAbilityIndicator   //think the zipline "Rock on!" thing
-        *       CardShowcase tutorial
-        */
-        //TODO: MechController::Update currentPassiveAbility: 690 allow passive card effects
-        //MAYBE LATER: MiracleButton::OnMiracleSelected----Hell rush miracle menu
-        //MAYBE LATER: UICard::GetAbilityNameFormatted                         optional
-        //MAYBE LATER: UICardAesthetics::CheckDiscardAmmoVisibility----havent checked what this is
         //TODO: MechController::FireCard----hitscan stuff needs to be done
         //i think thats it
-        public static void ClearActiveDiscardEffects(string cardID) => Handlers.ClearVelociticUpdates(cardID);
+        public static void ClearActiveDiscardEffects(string cardID, bool clearVanilla = true) => Handlers.ClearVelociticUpdates(cardID, clearVanilla);
         private struct Handlers
         {
             static string lastActiveCustomUI = "";
@@ -250,35 +242,46 @@ namespace ToolsOfTheTrade
                     //cardInfo.toggleCustomUI(true);
                 }
             }
-            public static void ClearVelociticUpdates(string cardID)
+            public static void ClearVelociticUpdates(string cardID, bool clearVanilla)
             {
                 DebugLog("Clear currentlyActiveUpdateEffects");
+                if (clearVanilla)
+                {
+                    if (RM.drifter.GetIsStomping())
+                    {
+                        AccessTools.Field(typeof(FirstPersonDrifter), "stomping")
+                                   .SetValue(RM.drifter, false);
+                        AudioController.Stop("MECH_BOOST");
+                        AudioController.Stop("ABILITY_STOMP_LOOP");
+                    }
+                    if (RM.drifter.GetIsTelefragging())
+                    {
+                        //stop telefragging or smth i dunno
+                    }
+                    if ((bool)AccessTools.Field(typeof(FirstPersonDrifter), "ziplining").GetValue(RM.drifter))
+                    {
+                        RM.drifter.CancelZiplineFromAnotherAbility();
+                    }
+                }
                 foreach (string activeCardID in currentlyActiveUpdateEffects.ToArray())
                 {
                     customDictionary[activeCardID].abortAbility?.Invoke(cardID);
                 }
             }
-            public static bool UpdateVelocityEarly(float deltaTime)
+            public static bool UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
             {
-                bool ret = false;
-                foreach (string cardID in currentlyActiveUpdateEffects.ToArray())
+                bool ret = true;
+                foreach (string cardID in currentlyActiveUpdateEffects)
                 {
-                    customDictionary[cardID].updateVelocityEarly?.Invoke(deltaTime);
-                    ret = true;
+                    currentVelocity = customDictionary[cardID].updateVelocity(currentVelocity, deltaTime);
+                    ret = false;
                 }
                 return ret;
-            }
-            public static void UpdateVelocityLate(float deltaTime)
-            {
-                foreach (string cardID in currentlyActiveUpdateEffects.ToArray())
-                {
-                    customDictionary[cardID].updateVelocityLate?.Invoke(deltaTime);
-                }
             }
             public static bool OnMovementHitCustom(BaseDamageable damageable)
             {
                 bool doVanillaMovementHit = true;
-                foreach (string cardID in currentlyActiveUpdateEffects.ToArray())
+                foreach (string cardID in currentlyActiveUpdateEffects)
                 {
                     if (customDictionary[cardID].onMovementHit != null)
                     {
@@ -355,7 +358,7 @@ namespace ToolsOfTheTrade
             static void ClearCustomEffectsOnVanillaDiscard(PlayerCardData.DiscardAbility ability)
             {
                 //MAYBE LATER: Verify that this actually works
-                if ((int)ability <= 200) { ClearActiveDiscardEffects(ability.ToString()); }
+                if ((int)ability <= 200) { ClearActiveDiscardEffects(ability.ToString(), false); }
             }
             [HarmonyTranspiler]
             [HarmonyPatch("DoDiscardAbility")]
@@ -474,7 +477,13 @@ namespace ToolsOfTheTrade
         [HarmonyPatch(typeof(FirstPersonDrifter))]
         class _FirstPersonDrifter
         {
-            [HarmonyTranspiler]
+            [HarmonyPrefix]
+            [HarmonyPatch(nameof(FirstPersonDrifter.UpdateVelocity))]
+            static bool UpdateVelocityOverride(ref Vector3 currentVelocity, float deltaTime)
+            {
+                return Handlers.UpdateVelocity(ref currentVelocity, deltaTime);
+            }
+            /*[HarmonyTranspiler]
             [HarmonyPatch(nameof(FirstPersonDrifter.UpdateVelocity))]
             static IEnumerable<CodeInstruction> UpdateVelocityEarly(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
             {
@@ -524,7 +533,7 @@ namespace ToolsOfTheTrade
                     CodeInstruction.Call(typeof(Handlers), nameof(Handlers.UpdateVelocityLate))
                 ]);
                 return my.Instructions();
-            }
+            }*/
             [HarmonyPrefix]
             [HarmonyPatch(nameof(FirstPersonDrifter.OnMovementHitDamageable))]
             static bool OnMovementHitCustom(BaseDamageable dmg)
